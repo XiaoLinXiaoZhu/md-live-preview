@@ -13,7 +13,7 @@ export const defaultBackend: EditorBackend = {
   async saveAttachment() { return ''; },
 };
 
-export const defaultOptions: Required<Omit<EditorOptions, 'doc' | 'filePath' | 'onChange' | 'onSave'>> = {
+export const defaultOptions: Required<Omit<EditorOptions, 'doc' | 'filePath' | 'onChange' | 'onSave' | 'onLinkClick' | 'onExternalLinkClick'>> = {
   tabSize: 4,
   useTab: true,
   readableLineWidth: true,

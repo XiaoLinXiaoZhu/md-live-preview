@@ -68,10 +68,35 @@ export interface EditorOptions {
   /** 自定义 CSS 变量覆写（如字体、字号等），会注入到编辑器容器的 style 属性 */
   cssVariables?: Record<string, string>;
 
+  /** 内部链接点击回调（[[link]]）。未提供时调用 backend.openFile */
+  onLinkClick?(linktext: string, sourcePath: string): void;
+  /** 外部链接点击回调（[text](url)）。未提供时调用 window.open */
+  onExternalLinkClick?(url: string): void;
+
   /** 文档内容变更回调 */
   onChange?(doc: string): void;
   /** 保存动作回调（Ctrl+S） */
   onSave?(doc: string): void;
+}
+
+// ─── 补全注册 ───
+
+export interface SuggestItem {
+  /** 显示文本 */
+  label: string;
+  /** 插入文本（不含触发字符） */
+  insertText: string;
+}
+
+export interface SuggestConfig {
+  /** 触发正则（匹配光标前文本末尾），如 /\[\[([^\]]*)$/ */
+  trigger: RegExp;
+  /** 根据匹配到的 query 返回建议列表 */
+  getSuggestions(query: string): SuggestItem[] | Promise<SuggestItem[]>;
+  /** 选中建议后的额外操作（可选） */
+  onAccept?(item: SuggestItem): void;
+  /** 插入建议后追加的后缀，如 "]]" */
+  suffix?: string;
 }
 
 // ─── 编辑器实例 ───
@@ -94,4 +119,7 @@ export interface EditorInstance {
 
   /** 聚焦编辑器 */
   focus(): void;
+
+  /** 注册自动补全。返回取消注册的函数 */
+  registerSuggest(config: SuggestConfig): () => void;
 }
