@@ -4,18 +4,11 @@
 <meta charset="UTF-8">
 <title>md-live-preview — Obsidian Engine</title>
 <link rel="stylesheet" href="/app.css">
-<link rel="stylesheet" href="/src/style.css">
 </head>
 <body class="theme-dark">
-<div id="toolbar">
-  <span>md-live-preview</span>
-  <span class="status" id="status">Loading Obsidian engine...</span>
-</div>
-<div class="view-content">
-  <div class="markdown-source-view mod-cm6 is-live-preview is-readable-line-width"></div>
-</div>
+<div id="app"></div>
 
-<!-- Obsidian dependencies -->
+<!-- Obsidian dependencies (must load before Vue app mounts) -->
 <script src="/vendor/lib/i18next.min.js"></script>
 <script src="/vendor/lib/codemirror.js"></script>
 <script src="/vendor/lib/meta.min.js"></script>
@@ -25,9 +18,6 @@
 <script src="/vendor/enhance.js"></script>
 <script src="/src/mock.js"></script>
 <script src="/vendor/obsidian-app.patched.js"></script>
-<script type="module">
-import { initDemo } from '/src/editor.js';
-setTimeout(initDemo, 100);
-</script>
+<script type="module" src="/src/main.ts"></script>
 </body>
 </html>

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "lib": ["ES2022", "DOM"],
+    "outDir": "./out",
+    "declaration": false,
+    "sourceMap": false,
+  },
+  "include": ["src/create.ts", "src/defaults.ts", "src/types.ts", "src/mock-app.ts", "src/extensions.ts", "src/link-handler.ts", "src/expand-text.ts", "src/suggest.ts", "src/globals.d.ts"]
+}

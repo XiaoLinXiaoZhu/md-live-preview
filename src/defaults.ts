@@ -2,7 +2,7 @@
  * 默认后端实现——无文件系统、无导航。
  * 用于独立预览页面或不需要后端能力的场景。
  */
-import type { EditorBackend, EditorOptions } from './types';
+import type { EditorBackend, EditorOptions } from './types.js';
 
 export const defaultBackend: EditorBackend = {
   resolveLinkPath() { return null; },

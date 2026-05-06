@@ -8,5 +8,6 @@
     "skipLibCheck": true,
     "lib": ["ES2022", "DOM"]
   },
-  "include": ["scripts/**/*", "src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["scripts"]
 }
