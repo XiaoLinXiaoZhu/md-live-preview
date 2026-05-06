@@ -162,9 +162,33 @@ Try editing — cursor reveals raw markdown, moving away renders it.
       scope: null,
       owner: mockOwner,
       clipboardManager: {
-        handleDragOver(e) {},
-        handleDrop(e) {},
-        handlePaste(e) {},
+        handleDragOver(e) {
+          e.preventDefault();
+          editorEl.classList.add('is-drop-target');
+        },
+        handleDrop(e) {
+          editorEl.classList.remove('is-drop-target');
+        },
+        handlePaste(e) {
+          const html = e.clipboardData?.getData('text/html');
+          if (!html) return;
+          // Use Turndown to convert HTML to markdown
+          if (!window.TurndownService) return;
+          try {
+            const td = new window.TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+            const md = td.turndown(html);
+            if (!md || !md.trim()) return;
+            e.preventDefault();
+            const { from, to } = view.state.selection.main;
+            view.dispatch({
+              changes: { from, to, insert: md },
+              selection: { anchor: from + md.length },
+              userEvent: 'input.paste',
+            });
+          } catch(err) {
+            console.warn('Paste conversion failed:', err);
+          }
+        },
       },
       addChild(c) { return c; },
       removeChild(c) {},
@@ -197,6 +221,13 @@ Try editing — cursor reveals raw markdown, moving away renders it.
       jB.init(() => view),
       WB.init(() => mockOwner),
       EditorView.updateListener.of((update) => {}),
+      // DOM event handlers (paste, drag, focus)
+      EditorView.domEventHandlers({
+        paste(e) { mockEditor.clipboardManager.handlePaste(e); },
+        dragover(e) { mockEditor.clipboardManager.handleDragOver(e); },
+        drop(e) { mockEditor.clipboardManager.handleDrop(e); },
+        dragleave(e) { editorEl.classList.remove('is-drop-target'); },
+      }),
       hangingIndent,
       language,
       // Smart list continuation on Enter, Tab indent/unindent
