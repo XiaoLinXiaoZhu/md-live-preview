@@ -1,9 +1,12 @@
 {
   "name": "md-live-preview",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Markdown live preview editor powered by Obsidian's CM6 engine",
   "type": "module",
-  "private": true,
+  "exports": {
+    ".": "./src/create.ts",
+    "./types": "./src/types.ts"
+  },
   "scripts": {
     "dev": "vite"
   },
