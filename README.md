@@ -18,8 +18,11 @@ Vite 开发服务器启动后访问 `http://localhost:3002`，即可体验完整
 ```
 index.html              主入口（DOM 结构 + 脚本加载顺序）
 src/
+  types.ts              对外接口定义（EditorBackend, EditorOptions, EditorInstance）
+  create.ts             createEditor() 主入口——外部项目的唯一调用点
+  defaults.ts           默认后端实现（无文件系统时使用）
+  editor.js             Demo 页面入口（调用 createEditor）
   mock.js               Obsidian 运行所需的浏览器全局 mock
-  editor.js             编辑器初始化逻辑（ES module）
   style.css             页面级布局样式
 public/
   app.css               Obsidian 主题样式
@@ -41,6 +44,18 @@ docs/
   gaps-frontend.md      前端功能缺失分析（已修复）
   gaps-backend.md       需要后端适配的功能分析
 ```
+
+## 作为库使用
+
+md-live-preview 可以作为组件嵌入到外部项目中。核心入口是 `createEditor()`：
+
+```typescript
+import { createEditor } from 'md-live-preview/src/create';
+
+const editor = createEditor(container, { doc, onChange }, backend);
+```
+
+详细集成说明见 [docs/integration.md](docs/integration.md)。
 
 ## 核心行为
 
