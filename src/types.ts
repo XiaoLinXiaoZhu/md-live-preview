@@ -65,6 +65,9 @@ export interface EditorOptions {
   /** 主题：'dark' | 'light'，默认 'dark' */
   theme?: 'dark' | 'light';
 
+  /** 自定义 CSS 变量覆写（如字体、字号等），会注入到编辑器容器的 style 属性 */
+  cssVariables?: Record<string, string>;
+
   /** 文档内容变更回调 */
   onChange?(doc: string): void;
   /** 保存动作回调（Ctrl+S） */

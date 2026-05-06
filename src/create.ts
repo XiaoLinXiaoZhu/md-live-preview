@@ -63,6 +63,14 @@ export function createEditor(
     editorEl.classList.add('is-readable-line-width');
   }
 
+  // 注入自定义 CSS 变量
+  if (opts.cssVariables) {
+    for (const [key, value] of Object.entries(opts.cssVariables)) {
+      const prop = key.startsWith('--') ? key : `--${key}`;
+      editorEl.style.setProperty(prop, value as string);
+    }
+  }
+
   // 构造 mockApp——将后端接口注入
   const mockApp = buildMockApp(be, opts);
 

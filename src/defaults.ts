@@ -25,4 +25,5 @@ export const defaultOptions: Required<Omit<EditorOptions, 'doc' | 'filePath' | '
   autoPairMarkdown: true,
   spellcheck: false,
   theme: 'dark',
+  cssVariables: {},
 };

@@ -79,6 +79,7 @@ editor.destroy(); // 清理
 | autoPairMarkdown | boolean | true | 自动配对 Markdown 标记 |
 | spellcheck | boolean | false | 拼写检查 |
 | theme | 'dark' \| 'light' | 'dark' | 主题 |
+| cssVariables | `Record<string, string>` | `{}` | CSS 变量覆写，注入到容器 style（见下方"自定义样式"） |
 | onChange | `(doc: string) => void` | — | 文档变更回调 |
 | onSave | `(doc: string) => void` | — | Ctrl+S 保存回调 |
 
@@ -194,7 +195,9 @@ const backend: EditorBackend = {
 const editor = createEditor(container, { doc, filePath }, backend);
 ```
 
-## 主题
+## 自定义样式
+
+### 主题
 
 容器的 `body` 或祖先元素需添加 `theme-dark` 或 `theme-light` class 来启用对应主题。`app.css` 中的 CSS 变量会根据这个 class 切换配色。
 
@@ -203,6 +206,47 @@ const editor = createEditor(container, { doc, filePath }, backend);
   <div id="editor"></div>
 </body>
 ```
+
+### CSS 变量覆写
+
+编辑器的样式完全基于 CSS 变量。通过 `cssVariables` 选项可以覆写任何变量，无需修改 `app.css`：
+
+```typescript
+const editor = createEditor(container, {
+  doc: '# Hello',
+  cssVariables: {
+    '--font-text': '"LXGW WenKai", "Noto Serif SC", serif',
+    '--font-monospace': '"JetBrains Mono", "Fira Code", monospace',
+    '--font-text-size': '18px',
+    '--font-interface': '"Inter", sans-serif',
+    '--bold-modifier': '300',
+  },
+});
+```
+
+常用可覆写变量：
+
+| 变量 | 作用 | 默认值 |
+|------|------|--------|
+| `--font-text` | 正文字体 | 系统默认 |
+| `--font-interface` | UI 字体（行号等） | 系统默认 |
+| `--font-monospace` | 代码字体 | ui-monospace, SFMono-Regular, ... |
+| `--font-text-size` | 正文字号 | 16px |
+| `--bold-modifier` | 粗体额外 weight | 200 |
+| `--line-height` | 行高 | 1.5 |
+| `--background-primary` | 编辑器背景色 | 主题决定 |
+| `--text-normal` | 正文颜色 | 主题决定 |
+
+你也可以直接通过外部 CSS 覆写这些变量，而不使用 `cssVariables` 选项：
+
+```css
+.markdown-source-view {
+  --font-text: "My Custom Font", serif;
+  --font-text-size: 20px;
+}
+```
+
+两种方式等效，`cssVariables` 的优先级更高（inline style）。
 
 ## 打包建议
 
