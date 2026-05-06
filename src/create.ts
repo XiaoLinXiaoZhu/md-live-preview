@@ -189,6 +189,7 @@ function buildMockApp(be: Required<EditorBackend>, opts: any) {
     },
     workspace: {
       openLinkText(link: string) { be.openFile(link); },
+      getLeaf() { return { openLinkText(link: string) { be.openFile(link); } }; },
       getActiveFile() { return null; },
       activeEditor: null,
       on() { return { id: 0 }; },
