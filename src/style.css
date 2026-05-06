@@ -1,0 +1,32 @@
+/* 页面布局：仅处理全屏撑满和 toolbar */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+#toolbar {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--background-secondary);
+}
+#toolbar .status { margin-left: auto; }
+#toolbar .status.ok { color: var(--text-success); }
+#toolbar .status.err { color: var(--text-error); }
+
+.view-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+}
+.view-content > .markdown-source-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
