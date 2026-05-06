@@ -1,5 +1,4 @@
 node_modules/
 .dev-out/
-dist/
 *.log
 .temp*

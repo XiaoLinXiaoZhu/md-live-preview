@@ -1,25 +1,13 @@
 {
   "name": "md-live-preview",
-  "version": "0.1.0",
-  "description": "Obsidian-style markdown live preview editor component. WYSIWYG with markdown-first editing — syntax symbols hide when cursor leaves, raw markdown shown at cursor position.",
+  "version": "0.2.0",
+  "description": "Markdown live preview editor powered by Obsidian's CM6 engine",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "private": true,
   "scripts": {
-    "dev": "vite --open demo.html",
-    "build": "bun build src/index.ts --outdir dist --format esm --external codemirror --external @codemirror/* --external @lezer/*",
-    "typecheck": "tsc --noEmit"
+    "dev": "vite"
   },
   "dependencies": {
-    "@codemirror/commands": "^6.10.3",
-    "@codemirror/lang-markdown": "^6.5.0",
-    "@codemirror/language": "^6.12.3",
-    "@codemirror/search": "^6.7.0",
-    "@codemirror/state": "^6.6.0",
-    "@codemirror/view": "^6.41.1",
-    "@lezer/markdown": "^1.6.3",
-    "codemirror": "^6.0.2",
     "happy-dom": "^20.9.0"
   },
   "devDependencies": {

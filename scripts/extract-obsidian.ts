@@ -4,8 +4,9 @@
  */
 import { Window } from "happy-dom";
 import { readFileSync } from "fs";
+import path from "path";
 
-const code = readFileSync("e:/Workplace/temp/md-live-preview/vendor/obsidian-app.patched.js", "utf-8");
+const code = readFileSync(path.join(import.meta.dir, "../public/vendor/obsidian-app.patched.js"), "utf-8");
 
 // happy-dom 提供完整的浏览器 API
 const window = new Window({ url: "app://obsidian.md/" });
@@ -152,7 +153,7 @@ body.toggleClass = () => {};
 body.addClass = () => {};
 
 // 加载 i18next（Obsidian 依赖）
-const i18nextCode = readFileSync("e:/Workplace/temp/.temp/obsidian-src/lib/i18next.min.js", "utf-8");
+const i18nextCode = readFileSync(path.join(import.meta.dir, "../public/vendor/lib/i18next.min.js"), "utf-8");
 new Function(i18nextCode)();
 console.log("i18next loaded:", typeof (g as any).i18next);
 
@@ -186,7 +187,7 @@ console.log("i18next loaded:", typeof (g as any).i18next);
 (g as any).getSelection = () => ({ rangeCount: 0, getRangeAt() { return null; }, removeAllRanges() {}, addRange() {} });
 
 // CodeMirror 5 (legacy — UMD format, exports via factory return)
-const cmCode = readFileSync("e:/Workplace/temp/.temp/obsidian-src/lib/codemirror/codemirror.js", "utf-8");
+const cmCode = readFileSync(path.join(import.meta.dir, "../public/vendor/lib/codemirror.js"), "utf-8");
 // CM5 is UMD: (function(mod){...})(function(){...return CodeMirror})
 // Eval it in a context where it can attach to window
 const cmLoader = new Function("module", "exports", "define", cmCode + "\n;");
@@ -194,7 +195,7 @@ const fakeModule: any = { exports: {} };
 cmLoader(fakeModule, fakeModule.exports, undefined);
 (g.window as any).CodeMirror = fakeModule.exports;
 // Also load markdown mode
-const cmMarkdown = readFileSync("e:/Workplace/temp/.temp/obsidian-src/lib/codemirror/markdown.js", "utf-8");
+const cmMarkdown = readFileSync(path.join(import.meta.dir, "../public/vendor/lib/markdown.js"), "utf-8");
 new Function("CodeMirror", cmMarkdown)((g.window as any).CodeMirror);
 console.log("CodeMirror 5 loaded:", typeof (g.window as any).CodeMirror);
 
@@ -246,12 +247,12 @@ g.PointerEvent = class {};
 g.WheelEvent = class {};
 g.UIEvent = class {};
 g.EventTarget = class { addEventListener(){} removeEventListener(){} dispatchEvent(){ return true; } };
-const enhanceCode = readFileSync("e:/Workplace/temp/.temp/obsidian-src/enhance.js", "utf-8");
+const enhanceCode = readFileSync(path.join(import.meta.dir, "../public/vendor/enhance.js"), "utf-8");
 new Function(enhanceCode)();
 console.log("enhance.js loaded, Array.contains:", typeof ([] as any).contains);
 
 // Turndown (HTML→Markdown converter)
-const turndownCode = readFileSync("e:/Workplace/temp/.temp/obsidian-src/lib/turndown.js", "utf-8");
+const turndownCode = readFileSync(path.join(import.meta.dir, "../public/vendor/lib/turndown.js"), "utf-8");
 new Function("window", turndownCode + "\nwindow.TurndownService = TurndownService;")(g.window);
 console.log("TurndownService loaded:", typeof (g.window as any).TurndownService);
 
