@@ -308,3 +308,14 @@ console.log("\n✓ Direct window checks:");
 console.log("  window.__kH:", typeof (g.window as any).__kH);
 console.log("  window.__mH:", typeof (g.window as any).__mH);
 console.log("  window.__internal:", typeof (g.window as any).__internal);
+
+// Check __cm6
+const cm6 = (g.window as any).__cm6;
+if (cm6) {
+  console.log("\n✓ __cm6 exposed:");
+  for (const [k, v] of Object.entries(cm6)) {
+    console.log(`  ${k}: ${typeof v}`);
+  }
+} else {
+  console.log("✗ __cm6 not found");
+}
