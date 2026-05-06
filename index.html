@@ -40,9 +40,6 @@ body {
   margin: 0 auto;
 }
 #editor .cm-focused { outline: none !important; }
-/* Fix: prevent widget elements from affecting line height in header lines.
-   The empty <span contenteditable="false"> widget and cm-widgetBuffer imgs
-   can expand the line box when their font metrics differ from the header font. */
 .markdown-source-view.mod-cm6 img.cm-widgetBuffer {
   height: 0 !important;
   vertical-align: baseline;
@@ -79,7 +76,6 @@ window.CodeMirrorAdapter = {};
 window.process = { platform: 'win32', env: {}, versions: { electron: '28.0.0' }, cwd() { return '/'; } };
 window.ready = function() {};
 
-// Fix: Event objects need .detach() for Obsidian's script loader error handling
 if (!Event.prototype.detach) Event.prototype.detach = function() {};
 </script>
 <script src="/vendor/obsidian-app.patched.js"></script>
@@ -93,10 +89,29 @@ function createEditor() {
     return;
   }
 
-  const { EditorView, EditorState, StateEffect, Prec, Compartment } = window.__cm6;
-  const If = window.__fields.searchHighlight;
+  const { EditorView, EditorState, StateEffect, Prec, keymap, Compartment } = window.__cm6;
+  const { searchHighlight: If } = window.__fields;
+  const { editor: jB, owner: WB, livePreview: KB } = window.__stateFields;
+  const { updateField: UB } = window.__stateEffects;
+  const { inputHandler: pT, stateField: lT, keymap: fT, markdownSurround: iB } = window.__closeBrackets;
+  const { base: ZB, dynamic: iN } = window.__compartments;
+  const indentUnit = window.__indentUnit;
   const language = window.__language;
   const baseExtensions = window.__baseExtensions;
+  const hangingIndent = window.__hangingIndent;
+  const lineNumbers = window.__lineNumbers;
+  const activeLineGutter = window.__activeLineGutter;
+  const highlightActiveLineGutter = window.__highlightActiveLineGutter;
+  const indentGuide = window.__indentGuide;
+  const foldGutter = window.__foldGutter;
+  const foldExtensions = window.__foldExtensions;
+  const foldHeading = window.__foldHeading;
+  const foldIndent = window.__foldIndent;
+  const foldEffect = window.__foldEffect;
+  const frontmatterHandler = window.__frontmatterHandler;
+
+  const { indentMore, indentLess, newlineAndIndent } = window.__commands;
+  const listRegex = window.__listRegex;
 
   const sampleDoc = `# Live Preview Demo
 
@@ -166,6 +181,11 @@ Try editing — cursor reveals raw markdown, moving away renders it.
         const configs = {
           tabSize: 4, useTab: true, readableLineLength: true,
           showFrontmatter: false, livePreview: true,
+          autoPairBrackets: true, autoPairMarkdown: true,
+          rightToLeft: false, spellcheck: false,
+          showLineNumber: true, showIndentGuide: true,
+          foldHeading: true, foldIndent: true,
+          smartIndentList: true, propertiesInDocument: 'visible',
         };
         return configs[key];
       },
@@ -177,10 +197,12 @@ Try editing — cursor reveals raw markdown, moving away renders it.
     workspace: {
       openLinkText() {},
       getActiveFile() { return null; },
+      activeEditor: null,
       on() { return { id: 0 }; }, off() {},
       offref() {},
       trigger() {},
       editorExtensions: [],
+      editorSuggest: { close() {}, isShowingSuggestion() { return false; }, trigger() {} },
     },
     metadataCache: {
       getFirstLinkpathDest() { return null; },
@@ -196,73 +218,200 @@ Try editing — cursor reveals raw markdown, moving away renders it.
     keymap: { pushScope() {}, popScope() {}, getRootScope() { return {}; } },
     commands: { executeCommandById() {} },
     isVimEnabled() { return false; },
+    mobileToolbar: { update() {} },
   };
 
   try {
-    // Step 1: Create the REAL EditorView with minimal extensions
-    const initialState = EditorState.create({
-      doc: sampleDoc,
-      extensions: [
-        EditorView.lineWrapping,
-        ...baseExtensions,
-        Prec.lowest(If),
-        language,
-        EditorView.contentAttributes.of({ spellcheck: "false" }),
-      ],
-    });
+    // Step 1: Create bare EditorView (matches Obsidian's `new Vo({ parent: o })`)
+    const view = new EditorView({ parent: editorEl });
+    console.log('EditorView created');
 
-    const view = new EditorView({
-      state: initialState,
-      parent: editorEl,
-    });
+    // Step 2: Build mockEditor (mirrors Obsidian's aN class)
+    const mockOwner = {
+      file: { path: 'demo.md', name: 'demo.md', basename: 'demo', extension: 'md' },
+      saveImmediately() {},
+    };
 
-    console.log('EditorView created, viewport:', view.viewport);
-
-    // Step 2: Mock editor with reference to the REAL view
     const mockEditor = {
       app: mockApp,
-      path: 'demo.md',
+      get path() { return mockOwner.file?.path || ''; },
+      get file() { return mockOwner.file; },
       cm: view,
+      editor: null, // set below
       editorEl: editorEl,
       livePreviewPlugin: null,
       cleanupLivePreview: null,
       sourceMode: false,
       scope: null,
-      owner: { file: { path: 'demo.md', name: 'demo.md', basename: 'demo', extension: 'md' } },
+      owner: mockOwner,
+      clipboardManager: {
+        handleDragOver(e) {},
+        handleDrop(e) {},
+        handlePaste(e) {},
+      },
       addChild(c) { return c; },
       removeChild(c) {},
       register(cb) {},
       registerEvent(ref) {},
-      editorSuggest: { close() {}, isShowingSuggestion() { return false; } },
-      // Table cell editing mock
+      editorSuggest: { close() {}, isShowingSuggestion() { return false; }, trigger() {} },
       editTableCell(table, cell) {
-        // Return a minimal mock — table editing needs a full sub-editor
         const miniDiv = document.createElement('div');
         const miniState = EditorState.create({ doc: cell?.text || '' });
         const miniView = new EditorView({ state: miniState, parent: miniDiv });
         return { editor: { cm: miniView }, containerEl: miniDiv };
       },
       destroyTableCell() {},
+      onUpdate(update, docChanged) {},
+      onEditorClick(e) {},
+      updateLinkPopup() {},
     };
 
-    // Step 3: Call kH with the REAL view
-    const extensions = window.__kH(mockEditor, view);
-    console.log('kH returned', extensions.length, 'extensions');
+    // Minimal editor wrapper (mirrors rN)
+    mockEditor.editor = {
+      cm: view,
+      getSelection() { return ''; },
+      getCursor() { return { line: 0, ch: 0 }; },
+      getLine(n) { return ''; },
+      removeHighlights() {},
+      expandText() {},
+    };
 
-    // Step 4: setState with full extensions
+    // Step 3: Build localExtensions (mirrors buildLocalExtensions)
+    const localExtensions = [
+      jB.init(() => view),
+      WB.init(() => mockOwner),
+      EditorView.updateListener.of((update) => {
+        // Trigger decoration rebuild on changes
+      }),
+      // Hanging indent for wrapped lines
+      hangingIndent,
+      // Language (markdown syntax highlighting + parsing)
+      language,
+
+      // Smart list continuation on Enter, and Tab indent/unindent for lists
+      keymap.of([
+        {
+          key: 'Enter',
+          run(view) {
+            const state = view.state;
+            const { head } = state.selection.main;
+            const line = state.doc.lineAt(head);
+            const match = listRegex.exec(line.text);
+            if (!match) return false;
+            const prefix = match[0];
+            const blockquote = match[1] || '';
+            const listMarker = match[2] || '';
+            if (!listMarker) return false;
+            // If the line has only the list prefix (empty item), remove it
+            if (line.text.slice(prefix.length).trim() === '') {
+              view.dispatch({ changes: { from: line.from, to: line.to, insert: '' } });
+              return true;
+            }
+            // Build continuation prefix
+            let newMarker = listMarker;
+            const ordNum = match[4];
+            if (ordNum) {
+              // Increment number for ordered lists
+              const sep = match[5];
+              newMarker = (parseInt(ordNum) + 1) + sep;
+            }
+            // Checkbox: always unchecked
+            const checkbox = match[6] !== undefined ? '[ ] ' : '';
+            if (checkbox) newMarker = newMarker.replace(/\[.\] $/, '');
+            const insert = '\n' + blockquote + newMarker + checkbox;
+            view.dispatch({
+              changes: { from: head, insert },
+              selection: { anchor: head + insert.length },
+              userEvent: 'input.type',
+            });
+            return true;
+          },
+          shift(view) {
+            // Shift-Enter: newline with same indentation prefix but no list marker
+            return newlineAndIndent(view);
+          },
+          preventDefault: true,
+        },
+        {
+          key: 'Tab',
+          run(view) { return indentMore(view); },
+          shift(view) { return indentLess(view); },
+        },
+      ]),
+    ];
+
+    // Step 4: Build dynamicExtensions (mirrors getDynamicExtensions)
+    const tabSize = mockApp.vault.getConfig('tabSize');
+    const useTab = mockApp.vault.getConfig('useTab');
+    const indent = useTab ? '\t' : ' '.repeat(Math.min(Math.max(tabSize, 2), 4));
+
+    const dynamicExtensions = [
+      EditorState.tabSize.of(tabSize),
+      indentUnit.of(indent),
+      EditorView.contentAttributes.of({
+        spellcheck: String(mockApp.vault.getConfig('spellcheck')),
+        autocorrect: 'on',
+        autocapitalize: 'on',
+        contenteditable: 'true',
+      }),
+      // KB: livePreview mode = true
+      KB.init(() => true),
+    ];
+
+    // Line numbers (conditional)
+    if (mockApp.vault.getConfig('showLineNumber')) {
+      dynamicExtensions.push(lineNumbers({ fixed: false }), activeLineGutter, highlightActiveLineGutter());
+    }
+    // Indent guides (conditional)
+    if (mockApp.vault.getConfig('showIndentGuide')) {
+      dynamicExtensions.push(indentGuide);
+    }
+    // Folding (conditional)
+    const foldHeadingEnabled = mockApp.vault.getConfig('foldHeading');
+    const foldIndentEnabled = mockApp.vault.getConfig('foldIndent');
+    if (foldHeadingEnabled || foldIndentEnabled) {
+      editorEl.classList.add('is-folding');
+      dynamicExtensions.push(foldGutter(), ...foldExtensions);
+      if (foldHeadingEnabled) dynamicExtensions.push(foldHeading);
+      if (foldIndentEnabled) dynamicExtensions.push(foldIndent);
+      dynamicExtensions.push(foldEffect);
+    }
+    // Live preview extensions (kH)
+    const livePreviewExts = window.__kH(mockEditor, view);
+    dynamicExtensions.push(livePreviewExts);
+    console.log('kH returned', livePreviewExts.length, 'extensions');
+
+    // Auto-pair brackets and markdown
+    const autoPairBrackets = mockApp.vault.getConfig('autoPairBrackets');
+    const autoPairMarkdown = mockApp.vault.getConfig('autoPairMarkdown');
+    if (autoPairBrackets || autoPairMarkdown) {
+      const brackets = [];
+      if (autoPairBrackets) brackets.push('(', '[', '{', "'", '"');
+      if (autoPairMarkdown) brackets.push('*', '_', '`', '```');
+      dynamicExtensions.push(pT, lT);
+      dynamicExtensions.push(keymap.of(fT));
+      dynamicExtensions.push(
+        EditorState.languageData.of(() => [{ closeBrackets: { brackets } }])
+      );
+      dynamicExtensions.push(iB);
+      dynamicExtensions.push(frontmatterHandler);
+    }
+
+    // Step 5: Create full state (mirrors the `set` method)
+    // nN = ZB.of(tN) — base extensions in compartment
+    const nN = ZB.of(baseExtensions);
+
     const fullState = EditorState.create({
       doc: sampleDoc,
       extensions: [
-        EditorView.lineWrapping,
-        ...baseExtensions,
-        Prec.lowest(If),
-        language,
-        EditorView.contentAttributes.of({ spellcheck: "false" }),
-        ...extensions,
+        localExtensions,
+        iN.of(dynamicExtensions),
+        nN,
       ],
     });
 
     view.setState(fullState);
+    console.log('State set with full extensions');
 
     // Force decoration rebuild after syntax tree parses
     function forceRebuild() {
@@ -275,7 +424,7 @@ Try editing — cursor reveals raw markdown, moving away renders it.
     setTimeout(forceRebuild, 50);
 
     editorEl.classList.add('is-live-preview');
-    status.textContent = '✓ Live preview active (' + extensions.length + ' extensions)';
+    status.textContent = '✓ Live preview active (full Obsidian extensions)';
     status.className = 'status ok';
     console.log('Live preview editor ready!');
 
