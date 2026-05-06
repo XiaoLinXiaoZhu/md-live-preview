@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>md-live-preview — Obsidian Engine</title>
+<link rel="stylesheet" href="/app.css">
+<style>
+/* Layout overrides */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  display: flex;
+  flex-direction: column;
+  --accent-h: 254;
+  --accent-s: 80%;
+  --accent-l: 68%;
+}
+#toolbar {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--background-secondary);
+}
+#toolbar .status { margin-left: auto; }
+#toolbar .status.ok { color: var(--text-success); }
+#toolbar .status.err { color: var(--text-error); }
+#editor {
+  flex: 1;
+  overflow: hidden;
+}
+#editor .cm-editor { height: 100%; }
+#editor .cm-scroller { overflow: auto !important; }
+#editor .cm-content {
+  padding: 32px 48px !important;
+  max-width: var(--file-line-width, 720px);
+  margin: 0 auto;
+}
+#editor .cm-focused { outline: none !important; }
+/* Fix: prevent widget elements from affecting line height in header lines.
+   The empty <span contenteditable="false"> widget and cm-widgetBuffer imgs
+   can expand the line box when their font metrics differ from the header font. */
+.markdown-source-view.mod-cm6 img.cm-widgetBuffer {
+  height: 0 !important;
+  vertical-align: baseline;
+}
+.markdown-source-view.mod-cm6 .cm-line [contenteditable="false"]:empty {
+  font-size: 0;
+  line-height: 0;
+}
+</style>
+</head>
+<body class="theme-dark">
+<div id="toolbar">
+  <span>md-live-preview</span>
+  <span class="status" id="status">Loading Obsidian engine...</span>
+</div>
+<div id="editor" class="markdown-source-view mod-cm6 is-live-preview"></div>
+
+<!-- Obsidian dependencies -->
+<script src="/vendor/lib/i18next.min.js"></script>
+<script src="/vendor/lib/codemirror.js"></script>
+<script src="/vendor/lib/markdown.js"></script>
+<script src="/vendor/lib/turndown.js"></script>
+<script src="/vendor/enhance.js"></script>
+<script>
+// Browser global mocks
+window.OBSIDIAN_DEFAULT_I18N = {};
+i18next.init({ fallbackLng: 'en', ns: ['app'], defaultNS: 'app', initImmediate: false, interpolation: { escapeValue: false } });
+i18next.addResourceBundle('en', 'app', {});
+window.DOMPurify = { sanitize(h) { return h; }, addHook(){}, removeHook(){}, setConfig(){}, isSupported: true };
+window.activeWindow = window;
+window.activeDocument = document;
+window.initVimMode = () => ({ Vim: {} });
+window.CodeMirrorAdapter = {};
+window.process = { platform: 'win32', env: {}, versions: { electron: '28.0.0' }, cwd() { return '/'; } };
+window.ready = function() {};
+
+// Fix: Event objects need .detach() for Obsidian's script loader error handling
+if (!Event.prototype.detach) Event.prototype.detach = function() {};
+</script>
+<script src="/vendor/obsidian-app.patched.js"></script>
+<script>
+const status = document.getElementById('status');
+
+function createEditor() {
+  if (!window.__cm6 || !window.__cm6.EditorView) {
+    status.textContent = '✗ CM6 not loaded';
+    status.className = 'status err';
+    return;
+  }
+
+  const { EditorView, EditorState, StateEffect, Prec, Compartment } = window.__cm6;
+  const If = window.__fields.searchHighlight;
+  const language = window.__language;
+  const baseExtensions = window.__baseExtensions;
+
+  const sampleDoc = `# Live Preview Demo
+
+This is **bold text** and *italic text* and ~~strikethrough~~.
+
+Inline \`code\` looks like this.
+
+## Links
+
+[Click here](https://example.com) to visit a link.
+
+[[Internal link]] to another note.
+
+## Blockquotes
+
+> This is a blockquote.
+> It can span multiple lines.
+
+> [!NOTE]
+> This is a note callout.
+
+> [!WARNING]
+> This is a warning callout.
+> Pay attention to this content.
+
+> [!TIP]
+> Here's a helpful tip for you.
+
+## Lists
+
+- Item one
+- Item two with **bold**
+- [ ] Unchecked task
+- [x] Completed task
+
+1. First ordered
+2. Second ordered
+
+## Code Block
+
+\`\`\`javascript
+const hello = "world";
+console.log(hello);
+\`\`\`
+
+---
+
+## Math
+
+$$E = mc^2$$
+
+Inline math: $a^2 + b^2 = c^2$
+
+## Tags
+
+#tag1 #tag2
+
+Try editing — cursor reveals raw markdown, moving away renders it.
+`;
+
+  const editorEl = document.getElementById('editor');
+
+  // Mock app object
+  const mockApp = {
+    vault: {
+      getConfig(key) {
+        const configs = {
+          tabSize: 4, useTab: true, readableLineLength: true,
+          showFrontmatter: false, livePreview: true,
+        };
+        return configs[key];
+      },
+      adapter: { getResourcePath(p) { return p; } },
+      on() { return { id: 0 }; }, off() {},
+      offref() {},
+      getAbstractFileByPath() { return null; },
+    },
+    workspace: {
+      openLinkText() {},
+      getActiveFile() { return null; },
+      on() { return { id: 0 }; }, off() {},
+      offref() {},
+      trigger() {},
+      editorExtensions: [],
+    },
+    metadataCache: {
+      getFirstLinkpathDest() { return null; },
+      getFileCache() { return null; },
+      getCache() { return null; },
+      on() { return { id: 0 }; }, off() {},
+      offref() {},
+    },
+    internalPlugins: {
+      getPluginById() { return null; },
+    },
+    plugins: { getPlugin() { return null; } },
+    keymap: { pushScope() {}, popScope() {}, getRootScope() { return {}; } },
+    commands: { executeCommandById() {} },
+    isVimEnabled() { return false; },
+  };
+
+  try {
+    // Step 1: Create the REAL EditorView with minimal extensions
+    const initialState = EditorState.create({
+      doc: sampleDoc,
+      extensions: [
+        EditorView.lineWrapping,
+        ...baseExtensions,
+        Prec.lowest(If),
+        language,
+        EditorView.contentAttributes.of({ spellcheck: "false" }),
+      ],
+    });
+
+    const view = new EditorView({
+      state: initialState,
+      parent: editorEl,
+    });
+
+    console.log('EditorView created, viewport:', view.viewport);
+
+    // Step 2: Mock editor with reference to the REAL view
+    const mockEditor = {
+      app: mockApp,
+      path: 'demo.md',
+      cm: view,
+      editorEl: editorEl,
+      livePreviewPlugin: null,
+      cleanupLivePreview: null,
+      sourceMode: false,
+      scope: null,
+      owner: { file: { path: 'demo.md', name: 'demo.md', basename: 'demo', extension: 'md' } },
+      addChild(c) { return c; },
+      removeChild(c) {},
+      register(cb) {},
+      registerEvent(ref) {},
+      editorSuggest: { close() {}, isShowingSuggestion() { return false; } },
+      // Table cell editing mock
+      editTableCell(table, cell) {
+        // Return a minimal mock — table editing needs a full sub-editor
+        const miniDiv = document.createElement('div');
+        const miniState = EditorState.create({ doc: cell?.text || '' });
+        const miniView = new EditorView({ state: miniState, parent: miniDiv });
+        return { editor: { cm: miniView }, containerEl: miniDiv };
+      },
+      destroyTableCell() {},
+    };
+
+    // Step 3: Call kH with the REAL view
+    const extensions = window.__kH(mockEditor, view);
+    console.log('kH returned', extensions.length, 'extensions');
+
+    // Step 4: setState with full extensions
+    const fullState = EditorState.create({
+      doc: sampleDoc,
+      extensions: [
+        EditorView.lineWrapping,
+        ...baseExtensions,
+        Prec.lowest(If),
+        language,
+        EditorView.contentAttributes.of({ spellcheck: "false" }),
+        ...extensions,
+      ],
+    });
+
+    view.setState(fullState);
+
+    // Force decoration rebuild after syntax tree parses
+    function forceRebuild() {
+      view.dispatch({});
+      const tree = window.__cm6.syntaxTree(view.state);
+      if (tree.length < view.state.doc.length) {
+        setTimeout(forceRebuild, 50);
+      }
+    }
+    setTimeout(forceRebuild, 50);
+
+    editorEl.classList.add('is-live-preview');
+    status.textContent = '✓ Live preview active (' + extensions.length + ' extensions)';
+    status.className = 'status ok';
+    console.log('Live preview editor ready!');
+
+  } catch (e) {
+    console.error('Editor creation error:', e);
+    status.textContent = '✗ ' + e.message;
+    status.className = 'status err';
+  }
+}
+
+setTimeout(createEditor, 100);
+</script>
+</body>
+</html>

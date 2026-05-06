@@ -1,7 +1,0 @@
-feat: browser demo with Obsidian live preview engine
-
-- Patched app.js now exposes __cm6 (EditorView, EditorState, etc.)
-- demo.html: loads patched Obsidian bundle + creates CM6 editor with kH extensions
-- serve.ts: static file server for browser testing
-- Verified: kH(mockEditor, view) returns 11 CM6 Extensions successfully
-- vendor/lib/: copied Obsidian dependencies (i18next, CM5, turndown, enhance)

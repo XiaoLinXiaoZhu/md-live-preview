@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "files": ["dist"],
   "scripts": {
-    "dev": "bun run dev-server.ts",
+    "dev": "vite --open demo.html",
     "build": "bun build src/index.ts --outdir dist --format esm --external codemirror --external @codemirror/* --external @lezer/*",
     "typecheck": "tsc --noEmit"
   },
@@ -22,5 +22,7 @@
     "codemirror": "^6.0.2",
     "happy-dom": "^20.9.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "vite": "^8.0.10"
+  }
 }
