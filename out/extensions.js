@@ -33,27 +33,44 @@ export function buildLocalExtensions(view, mockOwner, mockEditor, editorEl, opts
                     const prefix = match[0];
                     const blockquote = match[1] || '';
                     const listMarker = match[2] || '';
-                    if (!listMarker)
+                    // Neither blockquote nor list marker — let default behavior handle it
+                    if (!blockquote && !listMarker)
                         return false;
+                    // Empty line: just blockquote/list prefix with no content after
                     if (line.text.slice(prefix.length).trim() === '') {
-                        v.dispatch({ changes: { from: line.from, to: line.to, insert: '' } });
+                        v.dispatch({
+                            changes: { from: line.from, to: line.to, insert: '' },
+                            userEvent: 'input.type',
+                        });
                         return true;
                     }
-                    let newMarker = listMarker;
-                    const ordNum = match[4];
-                    if (ordNum) {
-                        const sep = match[5];
-                        newMarker = (parseInt(ordNum) + 1) + sep;
+                    if (listMarker) {
+                        // List continuation (existing logic)
+                        let newMarker = listMarker;
+                        const ordNum = match[4];
+                        if (ordNum) {
+                            const sep = match[5];
+                            newMarker = (parseInt(ordNum) + 1) + sep;
+                        }
+                        const checkbox = match[6] !== undefined ? '[ ] ' : '';
+                        if (checkbox)
+                            newMarker = newMarker.replace(/\[.\] $/, '');
+                        const insert = '\n' + blockquote + newMarker + checkbox;
+                        v.dispatch({
+                            changes: { from: head, insert },
+                            selection: { anchor: head + insert.length },
+                            userEvent: 'input.type',
+                        });
                     }
-                    const checkbox = match[6] !== undefined ? '[ ] ' : '';
-                    if (checkbox)
-                        newMarker = newMarker.replace(/\[.\] $/, '');
-                    const insert = '\n' + blockquote + newMarker + checkbox;
-                    v.dispatch({
-                        changes: { from: head, insert },
-                        selection: { anchor: head + insert.length },
-                        userEvent: 'input.type',
-                    });
+                    else {
+                        // Blockquote-only continuation
+                        const insert = '\n' + blockquote;
+                        v.dispatch({
+                            changes: { from: head, insert },
+                            selection: { anchor: head + insert.length },
+                            userEvent: 'input.type',
+                        });
+                    }
                     return true;
                 },
                 shift(v) { return newlineAndIndent(v); },

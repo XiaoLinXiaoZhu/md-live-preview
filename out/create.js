@@ -11,7 +11,7 @@ export function createEditor(container, options = {}, backend = {}) {
         throw new Error('md-live-preview: Obsidian runtime not loaded. ' +
             'Ensure vendor scripts are included before calling createEditor().');
     }
-    const { EditorView, EditorState, keymap, syntaxTree } = window.__cm6;
+    const { EditorView, EditorState, keymap, syntaxTree, Transaction } = window.__cm6;
     const { editor: jB, owner: WB, livePreview: KB } = window.__stateFields;
     const { inputHandler: pT, stateField: lT, keymap: fT, markdownSurround: iB } = window.__closeBrackets;
     const { base: ZB, dynamic: iN } = window.__compartments;
@@ -75,7 +75,8 @@ export function createEditor(container, options = {}, backend = {}) {
     });
     view.setState(fullState);
     function forceRebuild() {
-        view.dispatch({});
+        // Empty transaction to trigger tree parsing, marked to not affect undo history
+        view.dispatch({ annotations: Transaction.addToHistory.of(false) });
         const tree = syntaxTree(view.state);
         if (tree.length < view.state.doc.length) {
             setTimeout(forceRebuild, 50);

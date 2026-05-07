@@ -64,6 +64,7 @@ export function setupSuggest(view: any, config: SuggestConfig): () => void {
     view.dispatch({
       changes: { from: triggerFrom, to: cursor, insert: insertText },
       selection: { anchor: triggerFrom + insertText.length },
+      userEvent: 'input.type',
     });
     hideSuggest();
     view.focus();
@@ -122,29 +123,34 @@ export function setupSuggest(view: any, config: SuggestConfig): () => void {
     }
   });
 
-  view.dispatch({ effects: StateEffect.appendConfig.of(listener) });
+  const suggestKeymap = EditorView.domEventHandlers({
+    keydown(e: KeyboardEvent) {
+      if (!suggestEl || suggestEl.style.display === 'none') return false;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        updateSelection(selectedIdx + 1);
+        return true;
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        updateSelection(selectedIdx - 1);
+        return true;
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        acceptSuggestion(selectedIdx);
+        return true;
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        hideSuggest();
+        return true;
+      }
+      return false;
+    },
+  });
 
-  const keyHandler = (e: KeyboardEvent) => {
-    if (!suggestEl || suggestEl.style.display === 'none') return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault(); e.stopPropagation();
-      updateSelection(selectedIdx + 1);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault(); e.stopPropagation();
-      updateSelection(selectedIdx - 1);
-    } else if (e.key === 'Enter' || e.key === 'Tab') {
-      e.preventDefault(); e.stopPropagation();
-      acceptSuggestion(selectedIdx);
-    } else if (e.key === 'Escape') {
-      e.preventDefault(); e.stopPropagation();
-      hideSuggest();
-    }
-  };
-  view.dom.addEventListener('keydown', keyHandler, true);
+  view.dispatch({ effects: StateEffect.appendConfig.of([listener, suggestKeymap]) });
 
   return () => {
     active = false;
-    view.dom.removeEventListener('keydown', keyHandler, true);
     if (suggestEl) { suggestEl.remove(); suggestEl = null; }
   };
 }

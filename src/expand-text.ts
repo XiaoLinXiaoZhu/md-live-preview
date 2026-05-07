@@ -29,6 +29,7 @@ export function setupExpandText(view: any) {
           view.dispatch({
             changes: { from, to: cursor, insert: replaceText },
             selection: { anchor: from + replaceText.length },
+            userEvent: 'input.type',
           });
         }, 0);
         break;

@@ -1,7 +1,7 @@
 :root {
   --font-interface: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --font-text: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --font-monospace: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  --font-monospace: "Maple Mono NF CN", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
 }
 
 /* 页面布局：仅处理全屏撑满和 toolbar */
@@ -35,4 +35,14 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+}
+
+/* 代码块背景加深，与普通文本区分 */
+.theme-dark .cm-s-obsidian div.HyperMD-codeblock-bg,
+.theme-dark .cm-s-obsidian div.HyperMD-codeblock-begin-bg,
+.theme-dark .cm-s-obsidian div.HyperMD-codeblock-end-bg {
+  background-color: #1a1a2e;
+}
+.theme-dark .markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock {
+  background-color: #1a1a2e;
 }
